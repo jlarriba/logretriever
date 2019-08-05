@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"io"
+	"net/http"
 	"os"
 	"path/filepath"
 	"strconv"
@@ -16,7 +17,7 @@ var (
 )
 
 func main() {
-fmt.Printf("Logging Main process \n")
+	fmt.Printf("Logging Main process \n")
 	//logsFolder = os.Getenv("LOGS_FOLDER")
 	//exportFolder = os.Getenv("EXPORT_FOLDER")
 	interval, err := strconv.Atoi(os.Getenv("EXEC_INTERVAL"))
@@ -29,6 +30,20 @@ fmt.Printf("Logging Main process \n")
 	if exportFolder == "" {
 		exportFolder = "/opt/logs"
 	}
+
+	go gather(interval)
+	runWebServer()
+}
+
+func runWebServer() {
+	http.Handle("/", http.FileServer(http.Dir("/opt/logs")))
+	http.HandleFunc("/healthz", healthz)
+	if err := http.ListenAndServe(":8080", nil); err != nil {
+		panic(err)
+	}
+}
+
+func gather(interval int) {
 	for {
 		fmt.Println("Gathering logs...")
 		err2 := filepath.Walk(logsFolder, visit)
@@ -38,6 +53,10 @@ fmt.Printf("Logging Main process \n")
 		fmt.Printf("Pausing the process during %d minutes \n", interval)
 		time.Sleep(time.Minute * time.Duration(interval))
 	}
+}
+
+func healthz(w http.ResponseWriter, r *http.Request) {
+	w.Write([]byte("OK"))
 }
 
 func visit(path string, f os.FileInfo, err error) error {
@@ -53,14 +72,14 @@ func visit(path string, f os.FileInfo, err error) error {
 		}
 
 		sName := strings.Split(f.Name(), "_")
-		if (sName[1] != "kube-system") {
+		if sName[1] != "kube-system" {
 			sNamespace := strings.Split(sName[1], "-")
 			if len(sNamespace) != 2 {
 				err = copy(realPath, exportFolder+"/"+sNamespace[0]+"/pro/"+sName[2])
 			} else {
 				err = copy(realPath, exportFolder+"/"+sNamespace[0]+"/"+sNamespace[1]+"/"+sName[2])
 			}
-	
+
 			if err != nil {
 				fmt.Println("Error copying file", realPath, err)
 			}
