@@ -36,7 +36,7 @@ func main() {
 }
 
 func runWebServer() {
-	http.Handle("/", http.FileServer(http.Dir("/opt/logs")))
+	http.Handle("/", http.FileServer(http.Dir(exportFolder)))
 	http.HandleFunc("/healthz", healthz)
 	if err := http.ListenAndServe(":8080", nil); err != nil {
 		panic(err)
