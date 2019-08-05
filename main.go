@@ -60,7 +60,7 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 }
 
 func visit(path string, f os.FileInfo, err error) error {
-        if err != nil {
+	if err != nil {
 		fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
 		return err
 	}
@@ -75,20 +75,16 @@ func visit(path string, f os.FileInfo, err error) error {
 		}
 
 		sName := strings.Split(f.Name(), "_")
-		if sName[1] != "kube-system" {
-			sNamespace := strings.Split(sName[1], "-")
-			if len(sNamespace) != 2 {
-				err = copy(realPath, exportFolder+"/"+sNamespace[0]+"/pro/"+sName[2])
+		if len(sName) == 3 {
+			if sName[1] != "kube-system" {
+				err = copy(realPath, exportFolder+"/"+sName[1]+"/"+sName[2])
+				if err != nil {
+					fmt.Println("Error copying file", realPath, err)
+				}
 			} else {
-				err = copy(realPath, exportFolder+"/"+sNamespace[0]+"/"+sNamespace[1]+"/"+sName[2])
+				fmt.Println(sName[1], "Ignoring namespace")
+				return nil
 			}
-
-			if err != nil {
-				fmt.Println("Error copying file", realPath, err)
-			}
-		} else {
-			fmt.Println(sName[1], "Ignoring namespace")
-			return nil
 		}
 	}
 	return err
