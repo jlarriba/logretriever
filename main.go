@@ -60,10 +60,13 @@ func healthz(w http.ResponseWriter, r *http.Request) {
 }
 
 func visit(path string, f os.FileInfo, err error) error {
+        if err != nil {
+		fmt.Printf("prevent panic by handling failure accessing a path %q: %v\n", path, err)
+		return err
+	}
 	if f != nil && !strings.Contains(f.Name(), "POD") {
 		if f.IsDir() {
 			fmt.Println(path, "is a directory, ignore")
-			return nil
 		}
 		realPath, errSymLink := filepath.EvalSymlinks(path)
 		if errSymLink != nil {
@@ -85,6 +88,7 @@ func visit(path string, f os.FileInfo, err error) error {
 			}
 		} else {
 			fmt.Println(sName[1], "Ignoring namespace")
+			return nil
 		}
 	}
 	return err
